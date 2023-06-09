@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - 8000:8000
+    volumes:
+      - ./routes:/app/routes
+    environment:
+      - MINIO_ENDPOINT=http://minio:9000
+      - TRITON_ENDPOINT=http://triton:8000/v2/models/image_generation_model/infer
+      - SENTRY_DSN=your-sentry-dsn
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+
+  minio:
+    image: minio/minio
+    ports:
+      - 9000:9000
+    environment:
+      - MINIO_ACCESS_KEY=your-minio-access-key
+      - MINIO_SECRET_KEY=your-minio-secret-key
+    volumes:
+      - ./minio-data:/data
+
+  triton:
+    image: nvcr.io/nvidia/tritonserver:21.12-py3
+    ports:
+      - 8000:8000
+    command: tritonserver --model-repository=/models
+
+  sentry:
+    image: getsentry/sentry:latest
+    ports:
+      - 9001:9000
+    environment:
+      - SENTRY_SECRET_KEY=your-sentry-secret-key
+      - SENTRY_REDIS_HOST=redis
+      - SENTRY_POSTGRES_HOST=postgres
+
+  redis:
+    image: redis:latest
+
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=your-postgres-username
+      - POSTGRES_PASSWORD=your-postgres-password
+
+volumes:
+  minio-data:
